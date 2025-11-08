@@ -152,7 +152,7 @@ export default function Index() {
 
   if (!isAuthenticated) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-gradient-to-br from-purple-950 via-violet-950 to-indigo-950 flex items-center justify-center p-4">
         <Card className="w-full max-w-md shadow-2xl border-2 animate-scale-in">
           <CardHeader className="bg-gradient-to-r from-primary/10 to-secondary/10 text-center">
             <div className="flex justify-center mb-4">
@@ -229,7 +229,7 @@ export default function Index() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50">
+    <div className="min-h-screen bg-gradient-to-br from-purple-950 via-violet-950 to-indigo-950">
       <div className="container mx-auto px-4 py-8">
         <header className="text-center mb-12 animate-fade-in">
           <div className="flex items-center justify-center gap-3 mb-4">
