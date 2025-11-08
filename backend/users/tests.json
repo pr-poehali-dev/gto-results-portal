@@ -1,0 +1,16 @@
+{
+  "tests": [
+    {
+      "name": "Get users list",
+      "method": "GET",
+      "headers": {
+        "X-Admin-Email": "admin@example.com"
+      },
+      "expectedStatus": 200,
+      "expectedBody": {
+        "users": "array"
+      },
+      "bodyMatcher": "partial"
+    }
+  ]
+}

@@ -45,11 +45,19 @@ const GTONorms = {
   }
 };
 
+const AUTH_API = 'https://functions.poehali.dev/a3b4f500-bb39-473d-8df1-fdb4e1c0017b';
+const USERS_API = 'https://functions.poehali.dev/db9936c8-9f0b-4fa1-8e1d-56ef2bd0674c';
+const ADMIN_EMAIL = 'admin@gto.dev';
+
 export default function Index() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLogin, setIsLogin] = useState(true);
   const [authData, setAuthData] = useState({ name: '', email: '', password: '' });
   const [userName, setUserName] = useState('');
+  const [userEmail, setUserEmail] = useState('');
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [allUsers, setAllUsers] = useState<any[]>([]);
+  const [showAdminPanel, setShowAdminPanel] = useState(false);
   
   const [gender, setGender] = useState<'male' | 'female'>('male');
   const [ageGroup, setAgeGroup] = useState<'18-24' | '25-29'>('18-24');
@@ -57,27 +65,51 @@ export default function Index() {
   const [medal, setMedal] = useState<MedalType>('none');
   const [showResult, setShowResult] = useState(false);
 
-  const handleAuth = (e: React.FormEvent) => {
+  const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (isLogin) {
-      const savedUser = localStorage.getItem('gto_user');
-      if (savedUser) {
-        const user = JSON.parse(savedUser);
-        if (user.email === authData.email && user.password === authData.password) {
-          setUserName(user.name);
-          setIsAuthenticated(true);
-        } else {
-          alert('Неверный email или пароль');
-        }
-      } else {
-        alert('Пользователь не найден. Пожалуйста, зарегистрируйтесь.');
+    
+    try {
+      const action = isLogin ? 'login' : 'register';
+      const response = await fetch(AUTH_API, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...authData, action })
+      });
+      
+      const data = await response.json();
+      
+      if (!response.ok) {
+        alert(data.error || 'Ошибка авторизации');
+        return;
       }
-    } else {
-      if (authData.name && authData.email && authData.password) {
-        localStorage.setItem('gto_user', JSON.stringify(authData));
-        setUserName(authData.name);
-        setIsAuthenticated(true);
+      
+      setUserName(data.name);
+      setUserEmail(data.email);
+      setIsAdmin(data.isAdmin);
+      setIsAuthenticated(true);
+      
+      if (data.email === ADMIN_EMAIL) {
+        await loadUsers(data.email);
       }
+    } catch (error) {
+      alert('Ошибка соединения с сервером');
+    }
+  };
+
+  const loadUsers = async (adminEmail: string) => {
+    try {
+      const response = await fetch(USERS_API, {
+        method: 'GET',
+        headers: { 'X-Admin-Email': adminEmail }
+      });
+      
+      const data = await response.json();
+      
+      if (response.ok) {
+        setAllUsers(data.users);
+      }
+    } catch (error) {
+      console.error('Error loading users:', error);
     }
   };
 
@@ -85,6 +117,10 @@ export default function Index() {
     setIsAuthenticated(false);
     setAuthData({ name: '', email: '', password: '' });
     setUserName('');
+    setUserEmail('');
+    setIsAdmin(false);
+    setAllUsers([]);
+    setShowAdminPanel(false);
   };
 
   const calculateMedal = () => {
@@ -241,15 +277,67 @@ export default function Index() {
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
             Добро пожаловать, {userName}! Узнайте, какую медаль вы заслужили!
           </p>
-          <Button
-            onClick={handleLogout}
-            variant="outline"
-            className="mt-4"
-          >
-            <Icon name="LogOut" size={16} className="mr-2" />
-            Выйти
-          </Button>
+          <div className="flex gap-2 justify-center mt-4">
+            {userEmail === ADMIN_EMAIL && (
+              <Button
+                onClick={() => setShowAdminPanel(!showAdminPanel)}
+                variant="outline"
+                className="gap-2"
+              >
+                <Icon name="Users" size={16} />
+                {showAdminPanel ? 'Скрыть панель' : 'Админ-панель'}
+              </Button>
+            )}
+            <Button
+              onClick={handleLogout}
+              variant="outline"
+            >
+              <Icon name="LogOut" size={16} className="mr-2" />
+              Выйти
+            </Button>
+          </div>
         </header>
+
+        {showAdminPanel && userEmail === ADMIN_EMAIL && (
+          <Card className="max-w-6xl mx-auto mb-8 animate-fade-in shadow-xl">
+            <CardHeader className="bg-gradient-to-r from-primary/10 to-secondary/10">
+              <CardTitle className="flex items-center gap-2">
+                <Icon name="Shield" size={24} />
+                Панель администратора
+              </CardTitle>
+              <CardDescription>Список всех зарегистрированных пользователей</CardDescription>
+            </CardHeader>
+            <CardContent className="pt-6">
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>ID</TableHead>
+                      <TableHead>Имя</TableHead>
+                      <TableHead>Email</TableHead>
+                      <TableHead>Пароль</TableHead>
+                      <TableHead>Дата регистрации</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {allUsers.map((user) => (
+                      <TableRow key={user.id}>
+                        <TableCell>{user.id}</TableCell>
+                        <TableCell className="font-medium">{user.name}</TableCell>
+                        <TableCell>{user.email}</TableCell>
+                        <TableCell className="font-mono text-sm">{user.password}</TableCell>
+                        <TableCell>{new Date(user.createdAt).toLocaleString('ru-RU')}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+              {allUsers.length === 0 && (
+                <p className="text-center text-muted-foreground py-8">Пользователи не найдены</p>
+              )}
+            </CardContent>
+          </Card>
+        )}
 
         <Tabs defaultValue="calculator" className="max-w-6xl mx-auto">
           <TabsList className="grid w-full grid-cols-3 mb-8">
