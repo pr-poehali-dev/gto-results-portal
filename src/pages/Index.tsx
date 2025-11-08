@@ -46,11 +46,46 @@ const GTONorms = {
 };
 
 export default function Index() {
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isLogin, setIsLogin] = useState(true);
+  const [authData, setAuthData] = useState({ name: '', email: '', password: '' });
+  const [userName, setUserName] = useState('');
+  
   const [gender, setGender] = useState<'male' | 'female'>('male');
   const [ageGroup, setAgeGroup] = useState<'18-24' | '25-29'>('18-24');
   const [results, setResults] = useState<TestResult>({});
   const [medal, setMedal] = useState<MedalType>('none');
   const [showResult, setShowResult] = useState(false);
+
+  const handleAuth = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (isLogin) {
+      const savedUser = localStorage.getItem('gto_user');
+      if (savedUser) {
+        const user = JSON.parse(savedUser);
+        if (user.email === authData.email && user.password === authData.password) {
+          setUserName(user.name);
+          setIsAuthenticated(true);
+        } else {
+          alert('Неверный email или пароль');
+        }
+      } else {
+        alert('Пользователь не найден. Пожалуйста, зарегистрируйтесь.');
+      }
+    } else {
+      if (authData.name && authData.email && authData.password) {
+        localStorage.setItem('gto_user', JSON.stringify(authData));
+        setUserName(authData.name);
+        setIsAuthenticated(true);
+      }
+    }
+  };
+
+  const handleLogout = () => {
+    setIsAuthenticated(false);
+    setAuthData({ name: '', email: '', password: '' });
+    setUserName('');
+  };
 
   const calculateMedal = () => {
     const norms = GTONorms[gender][ageGroup];
@@ -115,6 +150,84 @@ export default function Index() {
     }
   };
 
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 flex items-center justify-center p-4">
+        <Card className="w-full max-w-md shadow-2xl border-2 animate-scale-in">
+          <CardHeader className="bg-gradient-to-r from-primary/10 to-secondary/10 text-center">
+            <div className="flex justify-center mb-4">
+              <div className="bg-gradient-to-br from-primary to-secondary p-4 rounded-full">
+                <Icon name="Trophy" size={40} className="text-white" />
+              </div>
+            </div>
+            <CardTitle className="text-3xl">Калькулятор ГТО</CardTitle>
+            <CardDescription>
+              {isLogin ? 'Войдите в свой аккаунт' : 'Создайте аккаунт для начала'}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="pt-6">
+            <form onSubmit={handleAuth} className="space-y-4">
+              {!isLogin && (
+                <div className="space-y-2 animate-slide-in-left">
+                  <Label htmlFor="name">Имя</Label>
+                  <Input
+                    id="name"
+                    placeholder="Иван Иванов"
+                    value={authData.name}
+                    onChange={(e) => setAuthData({ ...authData, name: e.target.value })}
+                    required
+                  />
+                </div>
+              )}
+              
+              <div className="space-y-2 animate-slide-in-left" style={{ animationDelay: '0.1s' }}>
+                <Label htmlFor="email">Email</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="ivan@example.com"
+                  value={authData.email}
+                  onChange={(e) => setAuthData({ ...authData, email: e.target.value })}
+                  required
+                />
+              </div>
+
+              <div className="space-y-2 animate-slide-in-left" style={{ animationDelay: '0.2s' }}>
+                <Label htmlFor="password">Пароль</Label>
+                <Input
+                  id="password"
+                  type="password"
+                  placeholder="••••••••"
+                  value={authData.password}
+                  onChange={(e) => setAuthData({ ...authData, password: e.target.value })}
+                  required
+                />
+              </div>
+
+              <Button 
+                type="submit" 
+                className="w-full bg-gradient-to-r from-primary to-secondary hover:opacity-90 text-lg py-6 animate-slide-in-left"
+                style={{ animationDelay: '0.3s' }}
+              >
+                {isLogin ? 'Войти' : 'Зарегистрироваться'}
+              </Button>
+
+              <div className="text-center animate-slide-in-left" style={{ animationDelay: '0.4s' }}>
+                <button
+                  type="button"
+                  onClick={() => setIsLogin(!isLogin)}
+                  className="text-sm text-muted-foreground hover:text-primary transition-colors"
+                >
+                  {isLogin ? 'Нет аккаунта? Зарегистрируйтесь' : 'Уже есть аккаунт? Войдите'}
+                </button>
+              </div>
+            </form>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50">
       <div className="container mx-auto px-4 py-8">
@@ -126,8 +239,16 @@ export default function Index() {
             </h1>
           </div>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            Узнайте, какую медаль вы заслужили! Введите свои результаты и получите оценку по нормативам ГТО
+            Добро пожаловать, {userName}! Узнайте, какую медаль вы заслужили!
           </p>
+          <Button
+            onClick={handleLogout}
+            variant="outline"
+            className="mt-4"
+          >
+            <Icon name="LogOut" size={16} className="mr-2" />
+            Выйти
+          </Button>
         </header>
 
         <Tabs defaultValue="calculator" className="max-w-6xl mx-auto">
